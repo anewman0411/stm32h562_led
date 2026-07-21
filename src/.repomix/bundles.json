@@ -1,0 +1,17 @@
+{
+  "bundles": {
+    "stm32h5blink-526": {
+      "name": "stm32h5blink",
+      "created": "2026-02-13T04:35:14.809Z",
+      "lastUsed": "2026-02-13T04:35:55.854Z",
+      "tags": [],
+      "files": [
+        "main.c",
+        "global_constants.h",
+        "setup.c",
+        "setup.h"
+      ],
+      "configPath": ".repomix/config/stm32h5blink-repomix.config.json"
+    }
+  }
+}
