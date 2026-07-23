@@ -32,7 +32,7 @@ If you see `0.11.0`, or `0.12.0` without the ST URL, flashing will fail with an 
 ### Building ST's OpenOCD
 
 ```bash
-sudo apt install -y autoconf automake libtool texinfo \
+sudo apt install -y autoconf automake libtool texinfo pkg-config \
                     libusb-1.0-0-dev libhidapi-dev libftdi1-dev
 
 git clone --depth 1 https://github.com/STMicroelectronics/OpenOCD.git
@@ -43,13 +43,24 @@ make -j$(nproc)
 make install
 ```
 
-Installing to `$HOME/.local` leaves the distro's `/usr/bin/openocd` in place as a fallback. Make sure `~/.local/bin` comes **before** `/usr/bin` on your `PATH`:
+`pkg-config` is required for `./bootstrap` — without it, `aclocal` fails immediately with `Macro PKG_PROG_PKG_CONFIG is not available`.
+
+### Put it on your PATH — don't skip this
+
+`make install` only copies the binary to `~/.local/bin/openocd`. It does **not** put `~/.local/bin` on your `PATH`, and the distro's `/usr/bin/openocd` (wrong version, no STM32H5 support) will keep shadowing it until you do that yourself. This step is easy to think you've done when you haven't — verify it explicitly:
 
 ```bash
-echo $PATH | tr ':' '\n' | grep -nE '^(/usr/bin|'"$HOME"'/.local/bin)$'
+which openocd
 ```
 
-If it doesn't, add `export PATH="$HOME/.local/bin:$PATH"` to your `~/.bashrc`.
+If this prints `/usr/bin/openocd` instead of `~/.local/bin/openocd`, your PATH isn't set up yet:
+
+1. Add this line to `~/.bashrc`:
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+2. Load it into your **current, interactive** shell — either open a new terminal, or run `source ~/.bashrc`. (Editing `~/.bashrc` alone changes nothing until it's re-sourced or a new shell starts; also note `~/.bashrc` only runs for *interactive* shells, so `source`-ing it from a script or non-interactive context won't take effect either.)
+3. Confirm again with `which openocd`, then check the version below.
 
 ## 2. Build the project
 
@@ -97,6 +108,22 @@ Info : flash mode : dual-bank
 wrote 1408 bytes from file ../bin/main.elf in 0.203373s (6.761 KiB/s)
 verified 1400 bytes in 0.083132s (16.446 KiB/s)
 ```
+
+### If the flash command produces no useful output, or errors on `stm32h5x.cfg`
+
+This almost always means `openocd` is still resolving to the wrong binary (`/usr/bin/openocd`, the distro build) instead of your `~/.local/bin/openocd` fork build — usually because the PATH step above was skipped, or was only applied in a `~/.bashrc` edit that was never sourced into your actual terminal. Symptoms include:
+
+- The command exits with `Error: Can't find target/stm32h5x.cfg` (the distro build doesn't ship this file).
+- The command appears to print nothing useful, or exits immediately.
+
+Check which binary is actually running and what version it is:
+
+```bash
+which openocd
+openocd --version
+```
+
+If `which` doesn't point at `~/.local/bin/openocd`, or the version output doesn't show the ST fork URL (see the version-check block above), go back and fix your `PATH` — that is the fix, not a hardware or build problem.
 
 ### Harmless output you can ignore
 
