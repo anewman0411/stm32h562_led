@@ -55,6 +55,8 @@ set(LD_flags "${MCU_flags} -specs=nano.specs -specs=nosys.specs -T${linker_scrip
 add_executable(${TARGET_ELF}
     src/main.c
     src/setup.c
+    src/bootloader.c
+    src/usb_cdc.c
     drivers/startup_stm32h562xx.s
     drivers/system_stm32h5xx.c
 )
