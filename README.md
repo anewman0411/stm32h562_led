@@ -12,16 +12,30 @@ Bare-metal STM32H562 project: CMSIS only, no HAL, no ST middleware. Includes a f
 
 The USB-C path needs firmware built from this tree already running on the chip, because it works by asking that firmware to reboot into the bootloader. So the **first** flash must go over ST-Link; every one after that can be USB-C.
 
-## Build the project
+## Build and flash — quick reference
+
+From the repo root:
 
 ```bash
-mkdir -p build
-cd build
-cmake ..
-make
+make            # configure + build -> bin/main.{elf,bin,hex}
+make flash      # flash over ST-Link  (first flash / recovery)
+make flash-dfu  # flash over USB-C    (no ST-Link, no BOOT0 button)
 ```
 
-Artifacts land in [bin/](bin/) — `main.elf`, `main.bin`, `main.hex`.
+Each flash target builds first, so `make flash-dfu` alone is enough day to day.
+
+### Fresh clone: you must ST-Link once before USB-C works
+
+`make flash-dfu` works by asking the **firmware already running on the board** to reboot into the bootloader. A blank chip — or one still running non-USB firmware — has nothing to ask, so the USB-C path cannot work until this firmware is on the board at least once. The very first flash therefore has to be ST-Link:
+
+```bash
+make flash        # ST-Link — bootstraps USB support onto the chip
+make flash-dfu    # now works, and for every flash after this
+```
+
+If you skip straight to `make flash-dfu` on a fresh board you'll get `no DFU device (0483:df11) appeared` — that's this ordering, not a broken setup.
+
+Build artifacts land in [bin/](bin/) — `main.elf`, `main.bin`, `main.hex`.
 
 ---
 
@@ -30,11 +44,12 @@ Artifacts land in [bin/](bin/) — `main.elf`, `main.bin`, `main.hex`.
 Once firmware built from this tree is running, the board reflashes itself over the USB-C connector alone:
 
 ```bash
-cd build && make      # produces bin/main.bin
-cd .. && ./flash_dfu.sh
+make flash-dfu        # builds, then flashes over USB-C
 ```
 
-That is the whole loop. No ST-Link, no BOOT0 pin, no RESET button, one cable.
+That is the whole loop. No ST-Link, no BOOT0 pin, no RESET button, one cable. (`make flash-dfu` just builds and runs [flash_dfu.sh](flash_dfu.sh); you can call the script directly if you prefer.)
+
+**On a fresh clone this needs `make flash` over ST-Link once first** — see [Fresh clone](#fresh-clone-you-must-st-link-once-before-usb-c-works) above. The USB-C path talks to firmware already on the chip, so there has to be some first.
 
 A successful run ends with:
 
